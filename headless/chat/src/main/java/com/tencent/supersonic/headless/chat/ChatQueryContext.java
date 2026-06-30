@@ -9,6 +9,7 @@ import com.tencent.supersonic.headless.api.pojo.SemanticSchema;
 import com.tencent.supersonic.headless.api.pojo.enums.ChatWorkflowState;
 import com.tencent.supersonic.headless.api.pojo.request.QueryNLReq;
 import com.tencent.supersonic.headless.api.pojo.response.ParseResp;
+import com.tencent.supersonic.headless.chat.parser.QueryRouter;
 import com.tencent.supersonic.headless.chat.query.SemanticQuery;
 import lombok.Data;
 
@@ -31,6 +32,12 @@ public class ChatQueryContext implements Serializable {
     @JsonIgnore
     private SemanticSchema semanticSchema;
     private ChatWorkflowState chatWorkflowState;
+    /**
+     * Routing decision made by QueryRouter for this query.
+     * Contains detailed information about why the query was routed to RULE or LLM.
+     */
+    @JsonIgnore
+    private QueryRouter.RoutingDecision routingDecision;
 
     public ChatQueryContext() {
         this(new QueryNLReq());

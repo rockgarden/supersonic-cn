@@ -11,6 +11,7 @@ import com.tencent.supersonic.headless.chat.ChatQueryContext;
 import com.tencent.supersonic.headless.chat.corrector.LLMPhysicalSqlCorrector;
 import com.tencent.supersonic.headless.chat.corrector.SemanticCorrector;
 import com.tencent.supersonic.headless.chat.mapper.SchemaMapper;
+import com.tencent.supersonic.headless.chat.parser.QueryRouter;
 import com.tencent.supersonic.headless.chat.parser.SemanticParser;
 import com.tencent.supersonic.headless.chat.query.QueryManager;
 import com.tencent.supersonic.headless.chat.query.SemanticQuery;
@@ -101,11 +102,37 @@ public class ChatWorkflowEngine {
     }
 
     private void performParsing(ChatQueryContext queryCtx) {
-        semanticParsers.forEach(parser -> {
-            parser.parse(queryCtx);
-            log.debug("{} result:{}", parser.getClass().getSimpleName(),
-                    JsonUtil.toString(queryCtx));
-        });
+        // Initialize router if not already initialized
+        QueryRouter queryRouter = ContextUtils.getBean(QueryRouter.class);
+        
+        // Make routing decision
+        QueryRouter.RoutingDecision routingDecision = queryRouter.decideRoute(queryCtx);
+        
+        // Store routing decision in context for logging and debugging
+        queryCtx.setRoutingDecision(routingDecision);
+        
+        // Route to appropriate parsers based on decision
+        if ("RULE".equals(routingDecision.getRouteTo())) {
+            log.info("Routing to Rule-Based parser: {}", routingDecision.getReason());
+            // Only execute rule-based parsers
+            semanticParsers.stream()
+                    .filter(parser -> parser instanceof com.tencent.supersonic.headless.chat.parser.rule.RuleSqlParser ||
+                                      parser instanceof com.tencent.supersonic.headless.chat.parser.rule.TimeRangeParser ||
+                                      parser instanceof com.tencent.supersonic.headless.chat.parser.rule.AggregateTypeParser)
+                    .forEach(parser -> {
+                        parser.parse(queryCtx);
+                        log.debug("{} result:{}", parser.getClass().getSimpleName(),
+                                JsonUtil.toString(queryCtx));
+                    });
+        } else {
+            log.info("Routing to LLM parser: {}", routingDecision.getReason());
+            // Execute all parsers including LLM
+            semanticParsers.forEach(parser -> {
+                parser.parse(queryCtx);
+                log.debug("{} result:{}", parser.getClass().getSimpleName(),
+                        JsonUtil.toString(queryCtx));
+            });
+        }
     }
 
     private void performCorrecting(ChatQueryContext queryCtx) {
