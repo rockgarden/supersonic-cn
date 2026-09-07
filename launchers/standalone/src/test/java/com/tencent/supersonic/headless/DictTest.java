@@ -1,15 +1,19 @@
 package com.tencent.supersonic.headless;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.hankcs.hanlp.HanLP;
+import com.hankcs.hanlp.seg.common.Term;
 import com.tencent.supersonic.common.pojo.enums.StatusEnum;
 import com.tencent.supersonic.common.pojo.enums.TaskStatusEnum;
 import com.tencent.supersonic.common.pojo.enums.TypeEnums;
 import com.tencent.supersonic.common.util.JsonUtil;
 import com.tencent.supersonic.headless.api.pojo.ItemValueConfig;
 import com.tencent.supersonic.headless.api.pojo.request.DictSingleTaskReq;
+import com.tencent.supersonic.headless.chat.knowledge.MultiCustomDictionary;
 import com.tencent.supersonic.headless.server.persistence.dataobject.DictConfDO;
 import com.tencent.supersonic.headless.server.persistence.mapper.DictConfMapper;
 import com.tencent.supersonic.headless.server.service.DictTaskService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -17,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 public class DictTest extends BaseTest {
     @Autowired
@@ -24,6 +29,22 @@ public class DictTest extends BaseTest {
 
     @Autowired
     private DictTaskService taskService;
+
+    @Test
+    public void loadCustomDictionarySample() {
+        String dictionaryPath = Objects
+                .requireNonNull(getClass().getClassLoader()
+                        .getResource("data/dictionary/custom/custom-dictionary-sample.txt"))
+                .getPath();
+        MultiCustomDictionary dictionary = new MultiCustomDictionary(dictionaryPath);
+
+        Assertions.assertEquals("_1_1", dictionary.get("超音数").nature[0].toString());
+        List<Term> terms = HanLP.newSegment().enableCustomDictionary(dictionary)
+                .enableJapaneseNameRecognize(false).enableNameRecognize(false)
+                .enableAllNamedEntityRecognize(false).enableNumberQuantifierRecognize(false)
+                .enablePlaceRecognize(false).enableOrganizationRecognize(false).seg("超音数");
+        Assertions.assertTrue(terms.stream().anyMatch(term -> "超音数".equals(term.word)));
+    }
 
     @Test
     public void insertConf() {
