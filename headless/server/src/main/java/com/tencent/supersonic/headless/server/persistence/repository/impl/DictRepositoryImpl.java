@@ -159,6 +159,9 @@ public class DictRepositoryImpl implements DictRepository {
         if (Objects.nonNull(dictItemFilter.getItemId())) {
             wrapper.lambda().eq(DictConfDO::getItemId, dictItemFilter.getItemId());
         }
+        if (!CollectionUtils.isEmpty(dictItemFilter.getItemIds())) {
+            wrapper.lambda().in(DictConfDO::getItemId, dictItemFilter.getItemIds());
+        }
         if (Objects.nonNull(dictItemFilter.getStatus())) {
             wrapper.lambda().eq(DictConfDO::getStatus, dictItemFilter.getStatus().name());
         }
